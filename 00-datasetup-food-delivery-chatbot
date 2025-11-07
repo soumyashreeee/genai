@@ -1,0 +1,50 @@
+import random
+import pandas as pd
+from datetime import datetime, timedelta
+
+# Fixed seeds for reproducibility
+random.seed(42)
+
+# Define constants
+CUSTOMERS = [f"CUST_{i}" for i in range(1, 6)]
+RESTAURANTS = [f"REST_{i}" for i in range(1, 6)]
+STATUSES = ["Order Placed", "Preparing", "Ready for Pickup", "On the Way", "Delivered", "Cancelled"]
+
+# Helper: random ETA between 5 and 45 minutes
+def random_eta():
+    return random.randint(5, 45)
+
+# Generate 10 orders
+orders = []
+for order_id in range(1, 11):
+    customer_id = random.choice(CUSTOMERS)
+    restaurant_id = random.choice(RESTAURANTS)
+    status = random.choice(STATUSES)
+    eta = random_eta() if status not in ["Delivered", "Cancelled"] else 0
+    order_time = datetime.now() - timedelta(minutes=random.randint(10, 120))
+    delivery_time = order_time + timedelta(minutes=eta) if eta else None
+
+    orders.append({
+        "order_id": f"ORD_{order_id:03d}",
+        "customer_id": customer_id,
+        "restaurant_id": restaurant_id,
+        "status": status,
+        "order_time": order_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "ETA_minutes": eta,
+        "expected_delivery_time": delivery_time.strftime("%Y-%m-%d %H:%M:%S") if delivery_time else "",
+    })
+
+# Ensure only one active order per customer
+df = pd.DataFrame(orders)
+active_mask = df["status"].isin(["Order Placed", "Preparing", "Ready for Pickup", "On the Way"])
+active_customers = set()
+for idx in df.index:
+    if df.loc[idx, "customer_id"] in active_customers and active_mask[idx]:
+        df.loc[idx, "status"] = "Delivered"
+        df.loc[idx, "ETA_minutes"] = 0
+    elif active_mask[idx]:
+        active_customers.add(df.loc[idx, "customer_id"])
+
+# Save to CSV
+df.to_csv("dummy_orders.csv", index=False)
+print(df)
