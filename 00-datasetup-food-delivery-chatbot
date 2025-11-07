@@ -45,6 +45,8 @@ for idx in df.index:
     elif active_mask[idx]:
         active_customers.add(df.loc[idx, "customer_id"])
 
-# Save to CSV
-df.to_csv("dummy_orders.csv", index=False)
-print(df)
+# Convert pandas DataFrame to Spark DataFrame
+spark_df = spark.createDataFrame(df)
+
+# Insert into Unity Catalog table
+spark_df.write.mode("append").saveAsTable("order_status")
